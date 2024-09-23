@@ -1,5 +1,6 @@
 import { sendResponse } from '../common/common.js';
 import { mailObj, transporter } from '../common/mail.config.js';
+import { CODES } from '../common/response-code.js';
 import bcrypt from 'bcryptjs';
 
 export default class GetOtpService {
@@ -11,14 +12,14 @@ export default class GetOtpService {
 
   getOtp = async (req) => {
     try {
-      
-      const user = await this.#userConnection.query('email').eq(req.query.email).exec();
-      if (user.length === 0) return sendResponse(400, 'User Not Found');
+      const { email } = req.body
+      const user = await this.#userConnection.get(email);
+      if (!user) return sendResponse(CODES.BAD_REQUEST, 'User Not Found');
 
       let otp = Math.floor(100000 + Math.random() * 900000);
       user[0].otp = otp;
       user[0].expireTime = Date.now() + 15 * 60 * 1000;
-      await user[0].save();
+      await user.save();
 
       await transporter.sendMail(
         await mailObj({
@@ -29,10 +30,10 @@ export default class GetOtpService {
       );
 
       
-      return sendResponse(200, 'OTP sent');
+      return sendResponse(CODES.OK, 'OTP sent');
     } catch (error) {
       console.error('Error in getting OTP:', error);
-      throw new Error('Error in getting OTP');
+      return sendResponse(CODES.INTERNAL_SERVER_ERROR, 'Error in send OTP');
     }
   };
 
@@ -42,7 +43,7 @@ export default class GetOtpService {
       const { email, otp, newPassword } = req.body;
 
       if (!email || !otp) {
-        return sendResponse(400, 'Please Enter OTP and Email');
+        return sendResponse(CODES.BAD_REQUEST, 'Please Enter OTP and Email');
       }
 
       const user = await this.#userConnection.scan({
@@ -52,7 +53,7 @@ export default class GetOtpService {
       }).exec();
       
       if (!user.count) {
-        return sendResponse(400, 'Invalid OTP or OTP has expired');
+        return sendResponse(CODES.BAD_REQUEST, 'Invalid OTP or OTP has expired');
       }
 
       const salt = await bcrypt.genSalt(10);
@@ -64,10 +65,10 @@ export default class GetOtpService {
         hashPassword: hashPassword
       });
 
-      return sendResponse(200, 'OTP Verified Successfully and New Password has been Set');
+      return sendResponse(CODES.OK, 'OTP Verified Successfully and New Password has been Set');
     } catch (error) {
       console.error('Error in verifying OTP:', error);
-      throw new Error('Error in verifying OTP');
+      return sendResponse(CODES.INTERNAL_SERVER_ERROR, 'Error in verifying OTP');
     }
   };
 }

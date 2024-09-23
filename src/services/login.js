@@ -25,7 +25,7 @@ export default class UserLoginService {
         return sendResponse(CODES.UNAUTHORIZED, 'Invalid email');
       }
 
-      const isMatch = await bcrypt.compare(password, user.hashPassword);
+      const isMatch = await bcrypt.compare(password, user.password);
       console.log(isMatch)
 
       if (!isMatch) {

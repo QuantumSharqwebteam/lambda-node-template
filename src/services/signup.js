@@ -35,7 +35,7 @@ export default class UserSignupService {
       };
 
       // Hash the password from request body
-      const hashedPassword = await hashPassword(req.body.hashPassword);
+      const hashedPassword = await hashPassword(req.body.password);
       logger.info('Hashed password:', hashedPassword);
 
       // Create new user instance and save to database
@@ -59,7 +59,7 @@ export default class UserSignupService {
       }
     } catch (error) {
       logger.error(error);
-      throw new Error('Error in Signup API Call');
+      return sendResponse(CODES.INTERNAL_SERVER_ERROR, 'Error in signup');
     }
   };
 }
